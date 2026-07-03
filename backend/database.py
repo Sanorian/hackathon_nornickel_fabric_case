@@ -3,7 +3,10 @@ from typing import List, Optional
 from sqlalchemy import ForeignKey, String, create_engine, select, DateTime, Column, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, Session, joinedload
 import uuid
+import asyncio
+
 from vector_storage import create_collection
+from utils import get_content_out_of_file
 
 import time
 import os
@@ -84,6 +87,15 @@ def create_project(engine):
         session.commit()
 
         return project.collection_name
+
+async def add_file(engine, project, file):
+    with Session(bind = engine) as session:
+        unique_name, file_path = await save_file(file)
+        file_object = File(
+            title = unique_name,
+            file_path = file_path,
+            content = get_content_out_of_file()
+        )
 
 async def save_file(file) -> tuple[str, str] | None:
     upload_dir = "./uploads"

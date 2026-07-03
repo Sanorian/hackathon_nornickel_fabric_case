@@ -2,7 +2,8 @@ fastapi
 sqlalchemy
 qdrant-client
 uuid
-psycopg2
+psycopg2-binary
 hypercorn
 pydantic[all]
-ollama
+openai
+requests

@@ -3,6 +3,7 @@ from typing import List, Optional
 from sqlalchemy import ForeignKey, String, create_engine, select, DateTime, Column, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, Session, joinedload
 import uuid
+from vector_storage import create_collection
 
 import time
 import os
@@ -70,3 +71,32 @@ def load_engine(
 
     raise Exception('Database connection failed after retries')
 
+def create_project(engine):
+    with Session(bind = engine) as session:
+        while True:
+            collection_name = uuid.uuid4()
+            if create_collection(collection_name):
+                break
+        project = Project(
+            collection_name = collection_name
+        )
+        session.add_all([project])
+        session.commit()
+
+        return project.collection_name
+
+async def save_file(file) -> tuple[str, str] | None:
+    upload_dir = "./uploads"
+    os.makedirs(upload_dir, exist_ok=True)
+
+    original_filename = file.filename or "unnamed"
+    unique_name = f"{str(uuid.uuid4()) + "." +original_filename.split(".")[-1]}"
+    file_path = os.path.join(upload_dir, unique_name)
+
+    try:
+        content = await file.read()
+        with open(file_path, "wb") as f:
+            f.write(content)
+        return (unique_name, file_path)
+    except Exception:
+        return None

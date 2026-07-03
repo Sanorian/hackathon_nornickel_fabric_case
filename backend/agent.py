@@ -4,7 +4,7 @@ import requests
 import os
 
 YANDEX_FOLDER_ID = "b1ggusvist6c2sia1dno"
-YANDEX_API_KEY = "AQVN34pk7pZhEv_vgD7voZpc76HQt7n5tSce4b_5"
+YANDEX_API_KEY = os.getenv('YC_API_KEY')
 YANDEX_MODEL = "aliceai-llm"
 OLLAMA_BASE = 'http://ollama:11434'
 EMBED_MODEL = 'nomic-embed-text'

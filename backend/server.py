@@ -1,5 +1,6 @@
 from fastapi import FastAPI, File, UploadFile, APIRouter
 from fastapi.staticfiles import StaticFiles
+import asyncio
 
 from typing import List
 
@@ -24,54 +25,59 @@ engine = load_engine()
 client = load_llm_client()
 
 @projects_router.get('/')
-def get_all_projects():
+def list_all_projects():
     projects = get_all_projects(engine)
     return projects_to_json(projects)
 
 @projects_router.get('/{id}')
-def get_project(id: int):
-    project = get_project_by_id(engine, id)
+def list_project_by_id(id: int):
+    project = get_project_by_id(
+        engine = engine,
+        id = id
+)
     return project_to_json(project)
 
 @projects_router.post('/add')
 def add_new_project(form: AddNewProjectForm):
     id = create_project(
+        qdrant = qdrant,
         engine = engine,
-        title = form.title
+        title = form.title,
     )
     return {"project_id": id}
 
 @projects_router.post('/{id}/add')
-def add_request_to_the_project(id: int, form: AddRequestToTheProjectForm):
+def add_request_to_the_project_endpoint(id: int, form: AddRequestToTheProjectForm):
     project = get_project_by_id(engine = engine, id = id)
-    content, thinking = make_request(
+    content = make_request(
         task = form.task,
         limitations = form.limitations,
         collection_name = project.collection_name,
-        client = client
+        client = client,
+        qdrant = qdrant
     )
     add_request_to_the_project(
         engine = engine,
-        project = id,
+        project_id = id,
         task = form.task,
         limitations = form.limitations,
         content = content,
-        thinking = thinking
     )
-    return {"content": content, "thinking": thinking}
+    return {"content": content}
 
 @projects_router.post('/{id}/files/add')
 def add_files(id: int, files: List[UploadFile] = File(...)):
     try:
         for file in files:
-            add_file(
+            asyncio.run(add_file(
                 engine = engine,
                 qdrant = qdrant,
                 project_id = id,
                 file = file
-            )
+            ))
         return {'response': "Файлы загружены"}
     except Exception as e:
+        print(e)
         return {'response': "Произошла ошибка при загрузке одного из файлов", "error": str(e)}
     
 app.include_router(projects_router)

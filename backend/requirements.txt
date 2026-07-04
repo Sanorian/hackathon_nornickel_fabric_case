@@ -9,4 +9,7 @@ openai
 requests
 asyncio
 pymupdf
-Spire.Doc
+python-docx
+python-multipart
+pandas
+openpyxl

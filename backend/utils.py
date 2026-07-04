@@ -1,9 +1,9 @@
 import pymupdf
-from spire.doc import *	
-from spire.doc.common import *
+from docx import Document
+import pandas as pd
 
 def get_content_out_of_file(file_path: str) -> str:
-    extension = file_path.split('.')[-1]
+    extension = file_path.split('.')[-1].lower()
     if extension == 'pdf':
         doc = pymupdf.open(file_path)
         all_text = ''
@@ -11,10 +11,15 @@ def get_content_out_of_file(file_path: str) -> str:
             all_text += page.get_text() + chr(12)
         return all_text
     elif extension == 'docx':
-        doc = Document()
-        doc.LoadFromFile(file_path)
-        text = doc.GetText()
-        return text
+        doc = Document(file_path)
+        full_text = []
+        for paragraph in doc.paragraphs:
+            if paragraph.text.strip():
+                full_text.append(paragraph.text)
+        return '\n'.join(full_text)
+    elif extension == 'xlsx':
+        df = pd.read_excel(file_path, header=None)
+        return df.to_string(index=False, header=False)
     else:
         return ''
 

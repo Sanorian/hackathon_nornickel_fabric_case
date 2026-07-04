@@ -3,7 +3,7 @@ import requests
 
 import os
 
-YANDEX_FOLDER_ID = "b1ggusvist6c2sia1dno"
+YANDEX_FOLDER_ID = os.getenv("YC_FOLDER_ID")
 YANDEX_API_KEY = os.getenv('YC_API_KEY')
 YANDEX_MODEL = "aliceai-llm"
 OLLAMA_BASE = 'http://ollama:11434'
@@ -21,15 +21,16 @@ def embed(text):
         f"{OLLAMA_BASE}/api/embeddings",
         json={"model": EMBED_MODEL, "prompt": text}
     )
-    return response.json()['embeddings']
+    return response.json()['embedding']
 
-def make_request(task, limitations, collection_name, client):
+def make_request(task, limitations, collection_name, client, qdrant):
     from vector_storage import get_data_from_the_collection
 
-    hits = get_data_from_the_collection(task, collection_name)
+    hits = get_data_from_the_collection(task, collection_name, qdrant)
     knowledges = "\n\n".join(hit.payload['text'] for hit in hits.points)
     prompt = f"""
     Ты - ассистент по генерации гипотез для научно-исследовательских и опытно-конструкторских работ.
+    Не используй markdown разметку в своих ответах.
     Сгенерируй гипотезы и отранжируй по приоритетности по задаче:
     {task}
     Ограничения:
@@ -42,4 +43,4 @@ def make_request(task, limitations, collection_name, client):
         input=prompt
     )
 
-    return response.output[0].content[0].text, response.output[0].thinking[0].text
+    return response.output[0].content[0].text

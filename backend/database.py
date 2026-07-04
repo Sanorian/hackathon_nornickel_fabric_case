@@ -10,22 +10,26 @@ from utils import get_content_out_of_file, get_overlapping_chunks
 
 import time
 import os
+from typing import List
 
 class Base(DeclarativeBase):
     pass
 
 class Project(Base):
     __tablename__ = "projects"
-    
+
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String(256))
     collection_name: Mapped[str] = mapped_column(String(256))
 
-    files: Mapped[List['File']] = relationship(
-        back_populates = 'project', cascade = "all, delete-orphan"
+    files: Mapped[List["File"]] = relationship(
+        back_populates="project",
+        cascade="all, delete-orphan"
     )
-    requests: Mapped[List['Request']] = relationship(
-        back_populates = 'request', cascade = "all, delete-orphan"
+
+    requests: Mapped[List["Request"]] = relationship(
+        back_populates="project",
+        cascade="all, delete-orphan"
     )
 
 class File(Base):
@@ -37,8 +41,9 @@ class File(Base):
     content: Mapped[str] = mapped_column(Text)
 
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"))
+
     project: Mapped["Project"] = relationship(
-        back_populates = "project"
+        back_populates="files"
     )
 
 class Request(Base):
@@ -47,13 +52,12 @@ class Request(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     task: Mapped[str] = mapped_column(Text)
     limitations: Mapped[str] = mapped_column(Text)
-
     content: Mapped[str] = mapped_column(Text)
-    thinking: Mapped[str] = mapped_column(Text)
 
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"))
+
     project: Mapped["Project"] = relationship(
-        back_populates = "project"
+        back_populates="requests"
     )
 
 def load_engine(
@@ -78,11 +82,11 @@ def load_engine(
 
     raise Exception('Database connection failed after retries')
 
-def create_project(engine, title):
+def create_project(engine, title, qdrant):
     with Session(bind = engine) as session:
         while True:
-            collection_name = uuid.uuid4()
-            if create_collection(collection_name):
+            collection_name = str(uuid.uuid4())
+            if create_collection(qdrant, collection_name):
                 break
         project = Project(
             collection_name = collection_name,
@@ -91,21 +95,23 @@ def create_project(engine, title):
         session.add_all([project])
         session.commit()
 
-        return project.collection_name
+        return project.id
 
 def get_all_projects(engine):
     with Session(bind = engine) as session:
         stmt = select(Project).order_by(Project.id.desc()).options(
-            joinedload(Project.files).joinedload(Project.requests)
+            joinedload(Project.files),
+            joinedload(Project.requests)
         )
-        return session.execute(stmt).scalars().all()
+        return session.execute(stmt).unique().scalars().all()
 
 def get_project_by_id(engine, id):
     with Session(bind = engine) as session:
         stmt = select(Project).where(Project.id == id).options(
-            joinedload(Project.files).joinedload(Project.requests)
+            joinedload(Project.files),
+            joinedload(Project.requests)
         )
-        return session.execute(stmt).scalar_one_or_none()
+        return session.execute(stmt).unique().scalar_one_or_none()
 
 async def save_file(file) -> tuple[str, str] | None:
     upload_dir = "./uploads"
@@ -126,20 +132,26 @@ async def save_file(file) -> tuple[str, str] | None:
 async def add_file(engine, qdrant, project_id, file):
     with Session(bind = engine) as session:
         original_filename, file_path = await save_file(file)
-        project = get_project_by_id(project_id)
+        project = get_project_by_id(
+            engine = engine,
+            id = project_id
+        )
         content = get_content_out_of_file(file_path)
         file_object = File(
             title = original_filename,
-            file_path = file_path,
+            path = file_path,
             content = content,
             project = project
         )
+        chunks = list(get_overlapping_chunks(
+            text = str(content),
+            size = 500,
+            overlap = 50
+        ))
+        if not chunks:
+            raise ValueError("Не удалось извлечь текст из файла или файл пуст")
         add_data_to_the_collection(
-            data = list(get_overlapping_chunks(
-                content = content,
-                size = 500,
-                overlap = 50
-            )),
+            data = chunks,
             collection_name = project.collection_name,
             qdrant = qdrant
         )
@@ -147,14 +159,16 @@ async def add_file(engine, qdrant, project_id, file):
         session.add_all([file_object])
         session.commit()
     
-def add_request_to_the_project(engine, project_id, task, limitations, content, thinking):
+def add_request_to_the_project(engine, project_id, task, limitations, content):
     with Session(bind = engine) as session:
         request = Request(
             task = task,
             limitations = limitations,
             content = content,
-            thinking = thinking,
-            project = get_project_by_id(project_id)
+            project = get_project_by_id(
+                engine = engine,
+                id = project_id
+            )
         )
 
         session.add_all([request])

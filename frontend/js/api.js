@@ -1,9 +1,20 @@
-const API = "http://localhost:8000/projects";
+const API = "/api/projects";
 
 async function getProjects() {
-    const res = await fetch(API);
-    return await res.json();
+    const res = await fetch('/api/projects/');
+
+    const text = await res.text();
+
+    console.log(res.status);
+    console.log(text);
+
+    if (!res.ok) {
+        throw new Error(text);
+    }
+
+    return JSON.parse(text);
 }
+
 
 async function getProject(id) {
     const res = await fetch(`${API}/${id}`);

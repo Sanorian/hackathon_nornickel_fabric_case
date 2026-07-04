@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ru">
+    <head>
+        <meta charset="UTF-8">
+        <title>Проект</title>
+        <link rel="stylesheet" href="/css/style.css">
+    </head>
+    <body>
+        <a href="index.html">← Назад</a>
+        <h1 id="title"></h1>
+        <h2>Файлы</h2>
+        <input
+            type="file"
+            id="files"
+            multiple>
+        <button id="upload">
+            Загрузить
+        </button>
+        <div id="file-list"></div>
+        <hr>
+        <h2>Новый запрос</h2>
+        <textarea
+            id="task"
+            placeholder="Задача"></textarea>
+        <textarea
+            id="limitations"
+            placeholder="Ограничения"></textarea>
+        <button id="send">
+            Отправить
+        </button>
+        <hr>
+        <h2>История запросов</h2>
+        <div id="requests"></div>
+        <script src="/js/api.js"></script>
+        <script src="/js/project.js"></script>
+    </body>
+</html>

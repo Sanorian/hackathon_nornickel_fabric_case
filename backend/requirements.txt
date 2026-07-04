@@ -8,3 +8,5 @@ pydantic[all]
 openai
 requests
 asyncio
+pymupdf
+Spire.Doc

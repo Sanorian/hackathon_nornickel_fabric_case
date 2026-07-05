@@ -1,3 +1,5 @@
 venv
 .env
 qdrant_data
+Архив.zip
+.DS_Store

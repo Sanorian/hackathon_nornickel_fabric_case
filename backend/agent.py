@@ -3,7 +3,7 @@ import requests
 
 import os
 
-YANDEX_FOLDER_ID = os.getenv("YC_FOLDER_ID")
+YANDEX_FOLDER_ID = os.getenv('YC_FOLDER_KEY')
 YANDEX_API_KEY = os.getenv('YC_API_KEY')
 YANDEX_MODEL = "aliceai-llm"
 OLLAMA_BASE = 'http://ollama:11434'

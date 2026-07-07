@@ -13,7 +13,7 @@ from database import (
     get_all_projects
 )
 from vector_storage import load_qdrant
-from agent import load_llm_client, make_request
+from agent import load_model, make_request
 from utils import project_to_json, projects_to_json
 from forms import AddNewProjectForm, AddRequestToTheProjectForm
 
@@ -22,7 +22,7 @@ projects_router = APIRouter(prefix = "/projects")
 
 qdrant = load_qdrant()
 engine = load_engine()
-client = load_llm_client()
+model = load_model()
 
 @projects_router.get('/')
 def list_all_projects():
@@ -53,7 +53,7 @@ def add_request_to_the_project_endpoint(id: int, form: AddRequestToTheProjectFor
         task = form.task,
         limitations = form.limitations,
         collection_name = project.collection_name,
-        client = client,
+        model = model,
         qdrant = qdrant
     )
     add_request_to_the_project(
